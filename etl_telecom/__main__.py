@@ -52,7 +52,7 @@ def main():
     cur.execute(postgis_love)
     # esto solo se corre la primera vez, tururú.
     
-    add_geom = "ALTER TABLE datos.sample_telecom ADD COLUMN geom geometry;"
+    add_geom = "ALTER TABLE datos.sample_telecom ADD COLUMN IF NOT EXISTS geom geometry;"
     print(add_geom)
     cur.execute(add_geom)
 
@@ -62,7 +62,11 @@ def main():
     # poner nombre descriptivo a query
     cur.execute(query_2)
 
-    query_3 = "SELECT geom FROM datos.sample_telecom LIMIT 5;"
+    query_3 = """
+    SELECT geom
+    FROM datos.sample_telecom
+    LIMIT 5;
+    """
     print(query_3)
     cur.execute(query_3)
     top_geoms = cur.fetchall()
