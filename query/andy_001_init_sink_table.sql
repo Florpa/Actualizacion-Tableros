@@ -3,6 +3,8 @@
 CREATE SCHEMA IF NOT EXISTS raw_data;
 
 -- creo tabla para vincular sink en actividad de copiado desde storage
+
+--versión 1
 CREATE TABLE raw_data.sample_table (
     id integer,
     dia character varying ,
@@ -19,13 +21,11 @@ CREATE TABLE raw_data.sample_table (
     id_2 integer
 );
 
-/*
-
-Columnas que probablemente haya que corregir:
-
-- uli_sitiorm_latitud, uli_sitiorm_longitud pasan a latitude, longitude
-- eliminar las columnas de geo (cdl_provincia, cdl_localidad, sitiorm_agrupador_zona_de_servic, barrio) si se recuperan desde lat-long
-- eliminar las columnas hora, day, dia si ya están en time
-- corregir y que haya un solo ID
-
-/*
+-- versión 2
+CREATE TABLE raw_data.sample_table (
+    dia character varying,
+    hora character varying,
+    lat double precision,
+    long double precision,
+    n_lineas integer
+);
