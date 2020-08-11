@@ -9,9 +9,10 @@ Tomo datos de una tabla del postgres y muevo cosas hasta tener actualizada la ta
 '''
 
 import psycopg2
-import sys
+# import sys
 import datetime
 from .config import *
+from .utils import increment_staged_data
 
 RETURN_EXITOSO = True
 
@@ -34,10 +35,23 @@ def main():
                                 port = godatos_pg_port,
                                 database = godatos_pg_db_name)
 
-    cur = connection.cursor()
     print("Conectado.")
 
     print(datetime.datetime.today())
+
+    # check_holes_in_dates("raw_data.sample_table", connection)
+    # acá puede ir función que toma tabla, hace fecha max, min, serie y valida que haya todos los días intermedios
+    # podría hacerse lo mismo a nivel hora, que no haya horas faltantes en cada día
+    # print("Resultado de chequeo de fechas: ", "tenemos un 3312")
+
+    increment_staged_data("raw_data.sample_table",
+                            "staged_data.sample_table",
+                            connection)
+    # tiro la data en 4326 o 5347? en algún momento se utiliza en 4326?
+
+    print("Staged data incremented OK.")
+
+    cur = con.cursor()
 
     query_1 = "SELECT DAY FROM telecom.dispositivos_0711 where day > (select max(fecha) from telecom.proyecto) GROUP BY day order by day;"
     query_1 = "SELECT * FROM datos.sample_telecom LIMIT 100;"
