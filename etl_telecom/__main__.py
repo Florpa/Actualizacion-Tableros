@@ -12,7 +12,7 @@ import psycopg2
 # import sys
 import datetime
 from .config import *
-from .utils import increment_staged_data
+from .utils import increment_staged_data, increment_antenas
 
 RETURN_EXITOSO = True
 
@@ -51,7 +51,20 @@ def main():
 
     print("Staged data incremented OK.")
 
-    cur = con.cursor()
+    dates = ["hoy", "ayer"]
+    # cualca hasta nuevo aviso
+    # acá puedo definir dates como distinct values de tabla, pasar el valor que quiero
+
+    increment_antenas("staged_data.sample_table",
+                            "staged_data.antenas_sample_table",
+                            dates,
+                            connection)
+    # decidir si le paso fechas para iterar en ese rango, o con la tabla de origen alcanza.
+
+    # hasta acá está revisado
+    # lo que viene es de esteo, no de producción
+    
+    cur = connection.cursor()
 
     query_1 = "SELECT DAY FROM telecom.dispositivos_0711 where day > (select max(fecha) from telecom.proyecto) GROUP BY day order by day;"
     query_1 = "SELECT * FROM datos.sample_telecom LIMIT 100;"
@@ -103,6 +116,9 @@ def main():
         print('Finalizado:', fecha)
     """
     
+    # debo truncar tabla inicial al terminar el script? al inicio?
+    # qué sucede al día siguiente?
+
     connection.commit()
     
     cur.close()
