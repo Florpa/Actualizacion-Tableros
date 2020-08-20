@@ -16,7 +16,7 @@ cur = connection.cursor()
 print("conectado")
 
 print(datetime.datetime.today())
-cur.execute("SELECT DAY FROM telecom.dispositivos_0711 where day > (select max(fecha) from telecom.proyecto)GROUP BY day order by day")
+cur.execute("SELECT DAY FROM telecom.dispositivos_0711 where day >  (select max(fecha )from telecom.proyecto)GROUP BY day order by day")
 fechas = cur.fetchall()
 cur.execute(
     "select distinct(HORA::time) FROM telecom.dispositivos_0711 group by hora::time order by 1 asc")
