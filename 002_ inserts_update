@@ -1,0 +1,152 @@
+										--mediodia semana--
+INSERT INTO regeneracion.tablero_powerbi (
+	id_cuadricula, semana,franja, n_actual)
+
+select fraccion, a.semana, 'mediodia',
+	   round(median (a.moviles::int)) as n_lineas
+	from telecom.proyecto a
+	left  join telecom.calendario_2020 c using (fecha)
+	where c.dia_semana NOT IN (5,6,7,8) and 
+		 hora between '11:00' and '15:00' 
+		 AND A.SEMANA =1
+	group by fraccion,a.semana
+	
+select * from regeneracion.tablero_powerbi
+									---Mediodia finde ---	
+											
+UPDATE 	regeneracion.tablero_powerbi a
+	SET findsemana = b.semana,
+    	franj_h= 'mediodia',
+    	n_actua= b.n_lineas
+	from 
+		(select fraccion, a.semana, 
+				round(median (a.moviles::int)) as n_lineas
+		from telecom.proyecto a
+		left  join telecom.calendario_2020 c using (fecha)
+		where c.dia_semana IN (5,6,7,8) and 
+				hora between '11:00' and '15:00' 
+				AND A.SEMANA =1
+		group by fraccion,a.semana)b
+	where a.id_cuadricula= b.fraccion::text and n_actua is null  and b.semana::text= a.semana::text	
+	
+									---Mediodia anterior semana---	
+											
+UPDATE 	regeneracion.tablero_powerbi a
+	SET semana_anterior = b.semana,
+    	franj_h= 'mediodia',
+    	n_anterior= b.n_lineas
+	from 
+		(select fraccion, a.semana, 
+				round(median (a.moviles::int)) as n_lineas
+		from telecom.proyecto a
+		left  join telecom.calendario_2020 c using (fecha)
+		where c.dia_semana not IN (5,6,7,8) and 
+				hora between '11:00' and '15:00' 
+				AND A.SEMANA =
+		group by fraccion,a.semana)b
+	where a.id_cuadricula= b.fraccion::text and n_actua is null  and b.semana::text= a.semana::text	
+	
+										---Mediodia anterior findesemana---	
+UPDATE 	regeneracion.tablero_powerbi a
+	SET find_anterior = b.semana,
+    	franj= 'mediodia',
+    	n_ant= b.n_lineas
+	from 
+		(select fraccion, a.semana, 
+				round(median (a.moviles::int)) as n_lineas
+		from telecom.proyecto a
+		left  join telecom.calendario_2020 c using (fecha)
+		where c.dia_semana IN (5,6,7,8) and 
+				hora between '11:00' and '15:00' 
+				AND A.SEMANA =
+		group by fraccion,a.semana)b
+	where a.id_cuadricula= b.fraccion::text and n_actua is null  and b.semana::text= a.semana::text		
+		
+	
+	
+	
+												--TARDE--
+												
+update regeneracion.tablero a  set s_tarde= b.n_lineas
+	from (select fraccion, a.semana, string_agg (distinct((concat (c.dia,'/',c.mes))),',') as fecha,
+	   round(median (a.moviles::int)) as n_lineas
+		from telecom.proyecto a
+		left  join telecom.calendario_2020 c using (fecha)
+		where c.dia_semana NOT IN (5,6,7,8) and 
+		 	hora between '15:00' and '17:00' 
+		 AND A.SEMANA =1
+		group by fraccion,a.semana)b
+	where a.id_cuadricula= b.fraccion::text and s_tarde is null  and b.semana::text= a.semana::text
+	
+											-----NOCHE---	
+update regeneracion.tablero a  set s_noche= b.n_lineas
+	from (select fraccion, a.semana, string_agg (distinct((concat (c.dia,'/',c.mes))),',') as fecha,
+	   round(median (a.moviles::int)) as n_lineas
+		from telecom.proyecto a
+		left  join telecom.calendario_2020 c using (fecha)
+		where c.dia_semana NOT IN (5,6,7,8) and 
+		 	hora between '17:00' and '23:00' 
+		 AND A.SEMANA =4
+		group by fraccion,a.semana)b
+	where a.id_cuadricula= b.fraccion::text and s_noche is null and b.semana::text= a.semana::text
+	
+											---Mediodia---	
+											
+UPDATE 	regeneracion.tablero a
+	SET findesemana = b.semana,
+    	fecha= b.fecha,
+    	f_mediodia= b.n_lineas
+	from 
+		(select fraccion, a.semana, string_agg (distinct((concat (c.dia,'/',c.mes))),',') as fecha,
+				round(median (a.moviles::int)) as n_lineas
+		from telecom.proyecto a
+		left  join telecom.calendario_2020 c using (fecha)
+		where c.dia_semana IN (5,6,7,8) and 
+				hora between '11:00' and '15:00' 
+				AND A.SEMANA =4
+		group by fraccion,a.semana)b
+	where a.id_cuadricula= b.fraccion::text and f_mediodia is null  and b.semana::text= a.semana::text
+
+
+
+												--TARDE--
+												
+update regeneracion.tablero a  set f_tarde= b.n_lineas
+	from (select fraccion, a.semana, 
+	   round(median (a.moviles::int)) as n_lineas
+		from telecom.proyecto a
+		left  join telecom.calendario_2020 c using (fecha)
+		where c.dia_semana IN (5,6,7,8) and 
+		 	hora between '15:00' and '17:00' 
+		 AND A.SEMANA =4
+		group by fraccion,a.semana)b
+	where a.id_cuadricula= b.fraccion::text and f_tarde is null  and b.semana::text= a.semana::text
+	
+											---NOCHE---	
+update regeneracion.tablero a  set f_noche= b.n_lineas
+	from (select fraccion, a.semana,
+	   round(median (a.moviles::int)) as n_lineas
+		from telecom.proyecto a
+		left  join telecom.calendario_2020 c using (fecha)
+		where c.dia_semana IN (5,6,7,8) and 
+		 	hora between '17:00' and '23:00' 
+		 AND A.SEMANA =4
+		group by fraccion,a.semana)b
+	where a.id_cuadricula= b.fraccion::text and f_noche is null and b.semana::text= a.semana::text
+	
+											---Poblacion--
+											
+update regeneracion.tablero a  set poblacion= b.n_lineas
+	from(select fraccion, a.semana,round(median (a.moviles::int)) as n_lineas
+			from telecom.proyecto a
+			left  join telecom.calendario_2020 c using (fecha)
+			where hora = '4:00'
+			 AND A.SEMANA =4
+			group by fraccion,a.semana)b
+where a.id_cuadricula= b.fraccion::text and poblacion is null and b.semana::text= a.semana::text
+											
+				
+											
+select distinct (fecha) from regeneracion.tablero
+select sum (poblacion)
+from regeneracion.tablero where semana= '4'

@@ -1,0 +1,15 @@
+select sum(moviles), dia_semana_nombre,fecha
+	from
+	telecom.proyecto a
+	LEFT JOIN telecom.calendario_2020 b using (fecha)
+	where a.fecha in ('2020-09-03','2020-09-02','2020-09-04','2020-09-08','2020-09-09','2020-09-11','2020-09-10') 
+	and hora = '12:30'
+	group by  dia_semana_nombre,fecha
+	order by fecha
+	
+	
+	/*select distinct (hora)
+	from telecom.proyecto
+	where fecha= '2020-09-06'
+	order by hora
+	*/
