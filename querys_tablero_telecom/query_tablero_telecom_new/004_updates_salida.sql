@@ -124,18 +124,6 @@ num_semana_actual,sum(cant_lineas_actual)semana_act
 */
 
 
-update telecom.actualizar_powerbi a set cant_lineas_semana_anterior = b.n_lineas
-from (select id_cuadricula,num_semana_actual,cant_lineas_actual as n_lineas
-	  from sem_29)b
-	  where a.id_cuadricula=b.id_cuadricula and a.num_semana_actual= 30
-	  
-update telecom.actualizar_powerbi  set cant_lineas_actual= 1
-	where num_semana_actual= 30 and cant_lineas_actual= 0
-	
-	create table sem_29 as 
-	select * from telecom.actualizar_powerbi 
-	where num_semana_actual= 29
-	
 
 
 	
