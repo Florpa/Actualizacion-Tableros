@@ -12,7 +12,7 @@ import psycopg2
 # import sys
 import datetime
 from .config import *
-from .utils import increment_staged_data, increment_antenas
+from .utils import get_max_date, increment_staged_data, get_distinct_new_dates, increment_antenas
 
 RETURN_EXITOSO = True
 
@@ -29,76 +29,60 @@ def main():
     print("--- Inicio del procesamiento ---")
 
     # Abre la coneccion y la request
-    connection = psycopg2.connect(user = godatos_pg_user,
-                                password = godatos_pg_password,
-                                host = godatos_pg_host,
-                                port = godatos_pg_port,
-                                database = godatos_pg_db_name)
+    con = psycopg2.connect(user = godatos_pg_user,
+                            password = godatos_pg_password,
+                            host = godatos_pg_host,
+                            port = godatos_pg_port,
+                            database = godatos_pg_db_name)
+
+    cur = con.cursor()
 
     print("Conectado.")
 
     print(datetime.datetime.today())
 
-    # check_holes_in_dates("raw_data.sample_table", connection)
+    source_table = "raw_data.sample_table"
+    print("source table:", source_table)
+    
+    sink_staged_table = "staged_data.sample_table"
+    print("sink table:", sink_staged_table)
+
+    # check_holes_in_new_data("raw_data.sample_table", cur)
     # acá puede ir función que toma tabla, hace fecha max, min, serie y valida que haya todos los días intermedios
     # podría hacerse lo mismo a nivel hora, que no haya horas faltantes en cada día
     # print("Resultado de chequeo de fechas: ", "tenemos un 3312")
 
-    increment_staged_data("raw_data.sample_table",
-                            "staged_data.sample_table",
-                            connection)
-    # tiro la data en 4326 o 5347? en algún momento se utiliza en 4326?
+    max_date = get_max_date(sink_staged_table, cur)
+    # si tabla vacía devuelve una lista con un elemento [(None,)]
 
-    print("Staged data incremented OK.")
-
-    dates = ["hoy", "ayer"]
-    # cualca hasta nuevo aviso
-    # acá puedo definir dates como distinct values de tabla, pasar el valor que quiero
-
-    increment_antenas("staged_data.sample_table",
-                            "staged_data.antenas_sample_table",
-                            dates,
-                            connection)
-    # decidir si le paso fechas para iterar en ese rango, o con la tabla de origen alcanza.
-
-    # hasta acá está revisado
-    # lo que viene es de esteo, no de producción
+    increment_staged_data(source_table,
+                            max_date,
+                            sink_staged_table,
+                            cur)
     
-    cur = connection.cursor()
+    print("Staged-data incrementada OK.")
 
-    query_1 = "SELECT DAY FROM telecom.dispositivos_0711 where day > (select max(fecha) from telecom.proyecto) GROUP BY day order by day;"
-    query_1 = "SELECT * FROM datos.sample_telecom LIMIT 100;"
-    # poner nombre descriptivo a query
-    cur.execute(query_1)
-    print(query_1)
-    fechas = cur.fetchall()
-    print(fechas)
+    distinct_new_dates = get_distinct_new_dates(
+        max_date, 
+        sink_staged_table,
+        cur
+    )
 
-    postgis_love = "CREATE EXTENSION IF NOT EXISTS postgis;"
-    print(postgis_love)
-    cur.execute(postgis_love)
-    # esto solo se corre la primera vez, tururú.
-    
-    add_geom = "ALTER TABLE datos.sample_telecom ADD COLUMN IF NOT EXISTS geom geometry;"
-    print(add_geom)
-    cur.execute(add_geom)
+    print(distinct_new_dates)
 
-    # query_2 = "select distinct(HORA::time) FROM telecom.dispositivos_0711 group by hora::time order by 1 asc"
-    query_2 = "UPDATE datos.sample_telecom SET geom = ST_SETSRID(ST_POINT(uli_sitiorm_longitud, uli_sitiorm_latitud), 4326)"
-    print(query_2)
-    # poner nombre descriptivo a query
-    cur.execute(query_2)
+    # incremento antenas, defino tabla de destino
+    sink_antenas_table = "staged_data.antenas_sample_table"
+    print(sink_antenas_table)
 
-    query_3 = """
-    SELECT geom
-    FROM datos.sample_telecom
-    LIMIT 5;
-    """
-    print(query_3)
-    cur.execute(query_3)
-    top_geoms = cur.fetchall()
+    increment_grilla_antenas(
+        sink_staged_table,
+        sink_antenas_table,
+        distinct_new_dates,
+        cur
+    )
+    # 
 
-    print(top_geoms)
+    print("Data de antenas incrementada OK.")
 
     """
     for fecha in fechas:
@@ -111,7 +95,7 @@ def main():
             
             cur.execute("with antenas as (select st_transform(geom,5347) as geom, day, sum(cant_lineas)*3.3 AS lineas,hora from telecom.dispositivos_0711 a where  hora::time = '" + hora + "' and day = '"+fecha+"' group by  geom, day,hora order by hora),calendario as( select pk_fecha,fecha,semana,dia_semana,dia,mes,dia_semana_nombre,feriado from telecom.calendario_2020),voro as (select x.geom, b.lineas as moviles, day, hora from (SELECT (ST_DUMP(ST_VoronoiPolygons(ST_Collect(geom)))).geom as geom from antenas)x inner join antenas b on st_within (b.geom, x.geom) ),caba as ( Select st_transform(st_union(geom),5347) as geom from flor.radios_caba),vorointer as (select st_intersection(b.geom,a.geom) as geom, moviles, day, hora,st_area(st_intersection(b.geom,a.geom)) as tarea  from voro a inner join caba b on st_intersects(a.geom, b.geom)), fraccion as (select st_transform(geom,5347) as geom,id as fraccion from  general.cuadrado_150),vorofrac as (select ST_Intersection(a.geom, b.geom) as geom, a.fraccion, moviles, tarea,day, hora, st_area(ST_Intersection(a.geom, b.geom)) as  farea from fraccion a inner join vorointer  b on st_intersects(a.geom, b.geom)) ,combi as ( select  GEOM, FRACCION, MOVILES, tarea, ((farea *100)/tarea) as porarea, ((farea*moviles)/tarea) as fantena,day, hora  from vorofrac),presalida as (select st_union(geom) as geom, fraccion, round(sum(fantena)) as moviles, day, hora from combi group by fraccion,day, hora),salida as (select st_transform(geom,4326) as geom,fraccion,moviles,moviles/(st_area(geom)/1000000) as densidad,day,hora from presalida),insertar as (insert into telecom.proyecto (fraccion, fecha, hora, moviles, semana)select fraccion,b.fecha,hora,moviles,b.semana from salida a join calendario b on a.day=b.fecha)select count(*) from telecom.proyecto")
             
-            connection.commit()
+            con.commit()
         
         print('Finalizado:', fecha)
     """
@@ -119,13 +103,18 @@ def main():
     # debo truncar tabla inicial al terminar el script? al inicio?
     # qué sucede al día siguiente?
 
-    connection.commit()
+    con.commit()
     
     cur.close()
 
-    connection.close()
+    con.close()
 
     return RETURN_EXITOSO
 
 if __name__ == '__main__':
     main()
+
+
+# en algún lugar debo crear índices
+# indexar por fecha, porque uso mucho el campo día
+# indexar espacialmente para acelerar operaciones
