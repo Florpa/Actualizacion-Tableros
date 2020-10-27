@@ -59,27 +59,16 @@ update telecom.actualizar_powerbi a set cant_lineas_actual = '1'
 
 						--- Ultimos Updates----
 
-
+--fecha de actualizacion
 update telecom.actualizar_powerbi  a set actualizacion ='25/9/2020'
 	where num_semana_actual=30
-		from (select to_char(min (fecha), 'DD/MM/YYYY') as fecha,semana::text 
-			  	from telecom.proyecto 
-	  			where semana=25
-			  	group by semana)b
-		where actualizacion is null  and b.semana=a.num_semana_actual::text;
 
+--periodo de la informacion
 update telecom.actualizar_powerbi a set descripcion='21/09 a 25/09'
 	where num_semana_actual=30
-		from (select concat (to_char(min (fecha), 'DD/MM'),' a ',
-			  		to_char(max (fecha), 'DD/MM'))as periodo,a.semana::text 
-			  	from telecom.proyecto a
-			  	left  join telecom.calendario_2020 c using (fecha)
-	  			where a.semana= 25
-			  	and c.dia_semana not in (6,7,8)
-			  			group by a.semana)b 
-		where b.semana=a.num_semana_actual::text
+
 		  
-		  
+--actualizo los valores de la "poblacion" de esa semana		  
 update  telecom.actualizar_powerbi a set poblacion_caba= b.n_lineas
     from (select fraccion, a.semana, 
 			   		round(median (a.moviles::int)) as n_lineas
@@ -94,7 +83,7 @@ update  telecom.actualizar_powerbi a set poblacion_caba= b.n_lineas
 ------------------------------------------------------------------------------------------------------------------
                     --El resultado de esta consulta la exporto a CSV  y con ella es que actualizo el power bi  
 ------------------------------------------------------------------------------------------------------------------
---create table semana_26 as
+insert into (tabla que alimenta el tablero)
 SELECT  id, id_cuadricula, geom, poblacion_caba, 
             semana_pre_cuarentena, num_semana_precuarentena, cant_lineas_precuarentena, 
             semana_anterior, num_semana_anterior, cant_lineas_semana_anterior, semana_actual,
