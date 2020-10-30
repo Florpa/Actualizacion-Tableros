@@ -14,7 +14,7 @@ cur = connection.cursor()
 print("conectado")
 
 print(datetime.datetime.today())
-
+#busco cual es la ultima semana que tengo registrada en mi tabla
 cur.execute('SELECT  max (num_semana_actual)FROM datos.tablero_transporte_')
 resultado = cur.fetchall()
 #VALOR DE LA ULTIMA SEMANA DISPONIBLE EN LA TABLA QUE ALIMENTA AL TABLERO

@@ -15,15 +15,23 @@ connection = psycopg2.connect(user="postgres@godatos",
 cur = connection.cursor()
 print("conectado")
 print(datetime.datetime.today())
-
+#000 Agrego la columna Geom
 cur.execute("alter table public.dispositivos_caba add column if not exists geom geometry (point,4326)")
 connection.commit()
 
+#001 Index a las columnas 
+print ('Indexando las columnas')
+cur.execute("create index on public.dispositivos_caba (date);create index on public.dispositivos_caba (hora); create index on public.dispositivos_caba using gist(geom);")
+print ('Termine de Indexar las columnas')
+connection.commit()
+
+#002 Construyo la geometria de las antenas  
+print ('Construyendo el campo geom  a partir de los lat/long')
 cur.execute("update public.dispositivos_caba  set geom = (ST_SetSRID(ST_MakePoint(long, lat),4326))where geom is null")
 connection.commit()
-print('Columna Geom Creada y actualizada')
+print ('Termine de actualizar el campo geom')
 
-
+#003 Consulta  de fechas y horas
 cur.execute("SELECT date FROM public.dispositivos_caba where date >  (select max(fecha )from datos.dispositivos_por_grilla)GROUP BY date order by date")
 fechas = cur.fetchall()
 if len(fechas) == 0:
@@ -31,7 +39,8 @@ if len(fechas) == 0:
 cur.execute(
     "select distinct(HORA::time) FROM public.dispositivos_caba group by hora::time order by 1 asc")
 horas = cur.fetchall()
-  
+
+#004 Iteracion por dia y hora. Construccion de voronois y pasaje a las grillas. Insert de resultados  
 for fecha in fechas:
     fecha = (str(fecha[0]))
     print(fecha,datetime.datetime.today())
