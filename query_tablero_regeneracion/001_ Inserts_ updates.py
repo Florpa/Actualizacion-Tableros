@@ -6,11 +6,12 @@ import datetime
 
 
 # Abre la coneccion y la request
-connection = psycopg2.connect(user="postgres",
-                              password="chirus2020",
-                              host="localhost",
-                              port="5433",
-                              database="postgres")
+# Abre la coneccion y la request
+connection = psycopg2.connect(user="postgres@godatos",
+                              password="datoscimmit1234$",
+                              host="godatos.postgres.database.azure.com",
+                              port="5432",
+                              database="telecom")
 
 cur = connection.cursor()
 print("conectado")
